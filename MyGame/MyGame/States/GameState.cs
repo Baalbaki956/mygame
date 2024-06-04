@@ -14,13 +14,20 @@ namespace MyGame.States
         Player player;
         Camera camera;
         OrthogonalMap map;
-        Icon icon;
+
+        Icon iconMenu;
 
         Vector2 mouseInWorldToTilePos;
 
         // Panel
         Texture2D panel;
         Texture2D lineBReak;
+
+        // slots
+        Vector2 slotPosition;
+        Texture2D bgSlot;
+        Texture2D bgSlotHovered;
+        bool slotHover;
 
         public void Initialize()
         {
@@ -36,17 +43,26 @@ namespace MyGame.States
             map.LoadContent();
 
             player = new Player(new Vector2(0, 0), map);
-            icon = new Icon(Globals.screenWidth - 24, 0);
-            icon.OnClick += MenuPressed;
+
+            // menu icon
+            iconMenu = new Icon(Globals.screenWidth - 24, 0);
+            iconMenu.OnClick += MenuPressed;
 
             panel = Globals.Content.Load<Texture2D>("UI/panel");
+            
+            // icons inside panel
             lineBReak = Globals.Content.Load<Texture2D>("UI/lineBreak");
+
+            // slots
+            slotPosition = new Vector2(Globals.screenWidth - 216 + 2, Globals.screenHeight / 2 + 8);
+            bgSlot = Globals.Content.Load<Texture2D>("UI/bgSlot");
+            bgSlotHovered = Globals.Content.Load<Texture2D>("UI/slotHovered");
+            slotHover = false;
         }
 
         private void MenuPressed()
         {
-            icon.isPressed = !icon.isPressed;
-            
+            iconMenu.isPressed = !iconMenu.isPressed;
         }
 
         private void GoBack()
@@ -58,7 +74,7 @@ namespace MyGame.States
 
         public void UnloadContent()
         {
-            icon.OnClick -= MenuPressed;
+            iconMenu.OnClick -= MenuPressed;
             Console.WriteLine("Disposing GameState.");
         }
 
@@ -66,10 +82,10 @@ namespace MyGame.States
         {
             // update map
             map.Update(gameTime);
-            if (icon.isPressed)
-                icon.Position = new Vector2(Globals.screenWidth - 216 - 24, 0);
+            if (iconMenu.isPressed)
+                iconMenu.Position = new Vector2(Globals.screenWidth - 216 - 24, 0);
             else
-                icon.Position = new Vector2(Globals.screenWidth - 24, 0);
+                iconMenu.Position = new Vector2(Globals.screenWidth - 24, 0);
 
             // update player
             player.Update(gameTime);
@@ -88,8 +104,17 @@ namespace MyGame.States
                     map.ChangeTile(0, 0);
                 }
             }
-            icon.Update(gameTime);
-            Console.WriteLine(Globals.screenWidth);
+
+            if (new Rectangle((int)slotPosition.X, (int)slotPosition.Y, bgSlot.Width, bgSlot.Height).Contains(MouseHandler.GetMousePosition()))
+            {
+                slotHover = true;
+            }
+            else
+            {
+                slotHover = false;
+            }
+
+            iconMenu.Update(gameTime);
         }
 
         public void Draw()
@@ -106,14 +131,18 @@ namespace MyGame.States
             Globals.SpriteBatch.DrawString(Globals.SpriteFont, "MPos X: " + ((int)mouseInWorldToTilePos.X + ", Y: " + (int)mouseInWorldToTilePos.Y), new Vector2(0, 32), Color.White);
 
             player.DrawHealth();
-            if (icon.isPressed)
+            if (iconMenu.isPressed)
             {
                 Globals.SpriteBatch.Draw(panel, new Rectangle(Globals.screenWidth - 216, 0, panel.Width, Globals.screenHeight), Color.White);
                 Globals.SpriteBatch.Draw(lineBReak, new Vector2(Globals.screenWidth - 216, Globals.screenHeight / 2), Color.White);
+
+                if (slotHover)
+                    Globals.SpriteBatch.Draw(bgSlotHovered, slotPosition, Color.White * .5f);
+                else
+                    Globals.SpriteBatch.Draw(bgSlot, slotPosition, Color.White);
             }
 
-            // Line break
-            icon.Draw();
+            iconMenu.Draw();
 
             Globals.SpriteBatch.End();
         }
