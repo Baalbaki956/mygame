@@ -14,15 +14,13 @@ namespace MyGame.States
         Player player;
         Camera camera;
         OrthogonalMap map;
+        Icon icon;
 
         Vector2 mouseInWorldToTilePos;
 
-        Texture2D bgButton;
-        Texture2D menuButton;
-
-        
-        Rectangle btnRectangle;
-        bool hover = false;
+        // Panel
+        Texture2D panel;
+        Texture2D lineBReak;
 
         public void Initialize()
         {
@@ -38,13 +36,17 @@ namespace MyGame.States
             map.LoadContent();
 
             player = new Player(new Vector2(0, 0), map);
-            menuButton = Globals.Content.Load<Texture2D>("UI/menu");
-            bgButton = Globals.Content.Load<Texture2D>("UI/healthBar");
-         
-            bgButtonMenu = Globals.Content.Load<Texture2D>("UI/bgButton");
-            bgButtonMenuHovered = Globals.Content.Load<Texture2D>("UI/bgButtonHover");
+            icon = new Icon(Globals.screenWidth - 24, 0);
+            icon.OnClick += MenuPressed;
+
+            panel = Globals.Content.Load<Texture2D>("UI/panel");
+            lineBReak = Globals.Content.Load<Texture2D>("UI/lineBreak");
+        }
+
+        private void MenuPressed()
+        {
+            icon.isPressed = !icon.isPressed;
             
-            hover = false;
         }
 
         private void GoBack()
@@ -56,6 +58,7 @@ namespace MyGame.States
 
         public void UnloadContent()
         {
+            icon.OnClick -= MenuPressed;
             Console.WriteLine("Disposing GameState.");
         }
 
@@ -63,6 +66,10 @@ namespace MyGame.States
         {
             // update map
             map.Update(gameTime);
+            if (icon.isPressed)
+                icon.Position = new Vector2(Globals.screenWidth - 216 - 24, 0);
+            else
+                icon.Position = new Vector2(Globals.screenWidth - 24, 0);
 
             // update player
             player.Update(gameTime);
@@ -81,17 +88,7 @@ namespace MyGame.States
                     map.ChangeTile(0, 0);
                 }
             }
-
-            btnRectangle = new Rectangle(Globals.screenWidth - 24, 6, 24, 24);
-            Point mousePoint = MouseHandler.GetMousePosition();
-            if (btnRectangle.Contains(mousePoint))
-            {
-                hover = true;
-            }
-            else
-            {
-                hover = false;
-            }
+            icon.Update(gameTime);
             Console.WriteLine(Globals.screenWidth);
         }
 
@@ -109,17 +106,14 @@ namespace MyGame.States
             Globals.SpriteBatch.DrawString(Globals.SpriteFont, "MPos X: " + ((int)mouseInWorldToTilePos.X + ", Y: " + (int)mouseInWorldToTilePos.Y), new Vector2(0, 32), Color.White);
 
             player.DrawHealth();
+            if (icon.isPressed)
+            {
+                Globals.SpriteBatch.Draw(panel, new Rectangle(Globals.screenWidth - 216, 0, panel.Width, Globals.screenHeight), Color.White);
+                Globals.SpriteBatch.Draw(lineBReak, new Vector2(Globals.screenWidth - 216, Globals.screenHeight / 2), Color.White);
+            }
 
-            if (hover)
-            {
-                Globals.SpriteBatch.Draw(bgButtonMenuHovered, new Rectangle(Globals.screenWidth - 24, 6, 24, 24), Color.White);
-            }
-            else
-            {
-                Globals.SpriteBatch.Draw(bgButtonMenu, new Rectangle(Globals.screenWidth - 24, 6, 24, 24), Color.White);
-            }
-            
-            //Globals.SpriteBatch.Draw(menuButton, new Vector2(Globals.screenWidth - 24 - 4, 6), Color.White);
+            // Line break
+            icon.Draw();
 
             Globals.SpriteBatch.End();
         }

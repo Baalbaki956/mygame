@@ -23,9 +23,7 @@ namespace MyGame.States
             Console.WriteLine("MenuState Inisialized!.");
             menuPanel = Globals.Content.Load<Texture2D>("UI/menu_panel");
             bg = Globals.Content.Load<Texture2D>("UI/background");
-            panelPosition = new Vector2(Globals.screenWidth / 2 - menuPanel.Width / 2, Globals.screenHeight / 2 - menuPanel.Height / 2);
-            // (Globals.screenWidth / 2 - 288 / 2) + 77
-            // (Globals.screenHeight / 2 - 320 / 2) + 61
+            
             btnStart = new Button((int)panelPosition.X + 77, (int)panelPosition.Y + 61, "Start");
             btnStart.OnClick += StartGame;
             btnExit = new Button((int)panelPosition.X + 77, (int)panelPosition.Y + 61 + 64, "Exit");
@@ -44,10 +42,14 @@ namespace MyGame.States
             btnExit.OnClick -= ExitGame;
         }
 
-        public void Update(Microsoft.Xna.Framework.GameTime gameTime)
+        public void Update(GameTime gameTime)
         {
             btnStart.Update(gameTime);
             btnExit.Update(gameTime);
+
+            panelPosition = new Vector2(Globals.screenWidth / 2 - menuPanel.Width / 2, Globals.screenHeight / 2 - menuPanel.Height / 2);
+            btnStart.btnPosition = new Vector2((int)panelPosition.X + 77, (int)panelPosition.Y + 61);
+            btnExit.btnPosition = new Vector2((int)panelPosition.X + 77, (int)panelPosition.Y + 61 + 64);
         }
 
         public void Draw()

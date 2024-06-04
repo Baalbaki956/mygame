@@ -38,7 +38,6 @@ namespace MyGame.Entities
             keys = new Dictionary<Keys, bool>();
 
             // Health
-            healthRect = new Rectangle(Globals.screenWidth / 2 - 256 / 2, Globals.screenHeight - 24 - 8, 250, 18);
             healthTexture = Globals.Content.Load<Texture2D>("UI/healthBar");
 
             // Setup input handling
@@ -70,6 +69,7 @@ namespace MyGame.Entities
         public void Update(GameTime gameTime)
         {
             currentAnim.Update(gameTime);
+            healthRect = new Rectangle(Globals.screenWidth / 2 - 256 / 2, Globals.screenHeight - 24 - 8, 250, 18);
 
             // Check if any movement key is pressed
             bool anyKeyPressed = KeyboardHandler.IsKeyPressed(Keys.Up) || KeyboardHandler.IsKeyPressed(Keys.Down) ||

@@ -11,12 +11,10 @@ namespace MyGame.UI
 {
     class Button
     {
-        private int x, y;
-
         Texture2D normalButton;
         Texture2D hoverButton;
 
-        Vector2 btnPosition { get; set; }
+        public Vector2 btnPosition { get; set; }
         string text;
 
         bool IsHovered = false;
@@ -27,8 +25,7 @@ namespace MyGame.UI
 
         public Button(int x, int y, string text)
         {
-            this.x = x;
-            this.y = y;
+            btnPosition = new Vector2(x, y);
             this.text = text;
 
             normalButton = Globals.Content.Load<Texture2D>("UI/btn_normal");
@@ -38,7 +35,7 @@ namespace MyGame.UI
         public void Update(GameTime gameTime)
         {
             Point pt = MouseHandler.GetMousePosition();
-            Rectangle rect = new Rectangle(x, y, this.normalButton.Width, this.normalButton.Height);
+            Rectangle rect = new Rectangle((int)btnPosition.X, (int)btnPosition.Y, this.normalButton.Width, this.normalButton.Height);
 
             IsHovered = rect.Contains(pt);
 
@@ -51,11 +48,11 @@ namespace MyGame.UI
 
         public void Draw()
         {
-            Globals.SpriteBatch.Draw(normalButton, new Vector2(x, y), Color.White);
+            Globals.SpriteBatch.Draw(normalButton, new Vector2((int)btnPosition.X, (int)btnPosition.Y), Color.White);
             if (IsHovered)
-                Globals.SpriteBatch.Draw(hoverButton, new Vector2(x, y), Color.White);
-           
-            Globals.SpriteBatch.DrawString(Globals.SpriteFont, text, new Vector2((x + 128 / 2) - Globals.SpriteFont.MeasureString(text).X / 2, (y + 32 / 2) - Globals.SpriteFont.MeasureString(text).Y / 2), Color.White);
+                Globals.SpriteBatch.Draw(hoverButton, new Vector2((int)btnPosition.X, (int)btnPosition.Y), Color.White);
+
+            Globals.SpriteBatch.DrawString(Globals.SpriteFont, text, new Vector2(((int)btnPosition.X + 128 / 2) - Globals.SpriteFont.MeasureString(text).X / 2, ((int)btnPosition.Y + 32 / 2) - Globals.SpriteFont.MeasureString(text).Y / 2), Color.White);
         }
 
         public void UnloadContent()
