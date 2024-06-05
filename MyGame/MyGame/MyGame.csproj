@@ -123,6 +123,8 @@
     <Compile Include="States\StateManager.cs" />
     <Compile Include="UI\Button.cs" />
     <Compile Include="UI\Icon.cs" />
+    <Compile Include="UI\Inventory.cs" />
+    <Compile Include="UI\Slot.cs" />
     <Compile Include="World\Action.cs" />
     <Compile Include="World\Camera.cs" />
     <Compile Include="World\Map.cs" />
