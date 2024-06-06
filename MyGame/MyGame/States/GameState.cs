@@ -6,6 +6,7 @@ using MyGame.Input;
 using MyGame.UI;
 using MyGame.World;
 using System;
+using System.Runtime.InteropServices;
 
 namespace MyGame.States
 {
@@ -15,17 +16,28 @@ namespace MyGame.States
         Camera camera;
         OrthogonalMap map;
 
+        // logout panel
+        Texture2D logoutPanel;
+        Vector2 logoutPanelPosition;
+        Button btnSubmit;
+        Button btnCancel;
+        
+        bool isLogoutPressed;
+
         // icons with images
         Texture2D icons;
 
         Icon iconMenu;
         Icon backpackIcon;
-        Icon skillsIcon;
         
+        Icon skillsIcon;
+
+        Texture2D textureBar;
+
         Icon gearIcon;
         Icon logoutIcon;
 
-        Inventory inventory;
+        InventoryTab inventory;
 
         Vector2 mouseInWorldToTilePos;
 
@@ -41,6 +53,28 @@ namespace MyGame.States
         // Panel
         Texture2D panel;
         Texture2D lineBReak;
+
+        // skill tab
+        SkillTab skillTab;
+
+        // window close stuff from the internet
+        // Windows API function declarations
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr SetWindowLong(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr GetWindowLong(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll")]
+        private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+        private const int GWL_WNDPROC = -4;
+        private const int WM_CLOSE = 0x0010;
+
+        private delegate IntPtr WndProcDelegate(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+        private IntPtr originalWndProc;
+        private WndProcDelegate newWndProcDelegate;
 
         public void Initialize()
         {
@@ -66,8 +100,14 @@ namespace MyGame.States
             backpackIcon.OnClick += OpenBackpack;
 
             skillsIcon = new Icon(Globals.screenWidth - 196 + 4 + 24 + 4, Globals.screenHeight / 2 - 28);
+            skillsIcon.OnClick += OpenSkill;
+
             gearIcon = new Icon(Globals.screenWidth - 24 - 4, Globals.screenHeight / 2 - 28);
+
             logoutIcon = new Icon(Globals.screenWidth - 24 - 4 - 24 - 4, Globals.screenHeight / 2 - 28);
+            logoutIcon.OnClick += ShowPanel;
+
+            Game1.Instance.Exiting += new EventHandler<EventArgs>(OnWindowClose);
 
             panel = Globals.Content.Load<Texture2D>("UI/panel");
             
@@ -78,7 +118,7 @@ namespace MyGame.States
             lineBReak = Globals.Content.Load<Texture2D>("UI/lineBreak");
 
             // slots
-            inventory = new Inventory(new Vector2(Globals.screenWidth - 196 + 8, Globals.screenHeight / 2 + 8));
+            inventory = new InventoryTab(new Vector2(Globals.screenWidth - 196 + 8, Globals.screenHeight / 2 + 8));
 
             // equipment slots
             equipmentSlot1 = new Slot(new Vector2(8 + Globals.screenWidth - 196 + 4 + 4, Globals.screenHeight / 2 - 28 - 24 - 18 - 16));
@@ -88,11 +128,113 @@ namespace MyGame.States
 
             // icon images
             icons = Globals.Content.Load<Texture2D>("UI/icons");
+
+            // skill tab
+            textureBar = Globals.Content.Load<Texture2D>("UI/healthBar");
+            skillTab = new SkillTab(new Vector2(0, 0));
+
+            logoutPanel = Globals.Content.Load<Texture2D>("UI/logout_panel");
+            logoutPanelPosition = new Vector2(Globals.screenWidth / 2 - 450 / 2, Globals.screenHeight / 2 - 134 / 2);
+
+            btnSubmit = new Button((int)logoutPanelPosition.X + 64 + 32, (int)logoutPanelPosition.Y + 128 - 32, "Submit");
+            btnSubmit.OnClick += SubmitPanel;
+
+            btnCancel = new Button((int)logoutPanelPosition.X + 64 + 128 + 32 + 8, (int)logoutPanelPosition.Y + 128 - 32, "Cancel");
+            btnCancel.OnClick += CancelLogout;
+
+            isLogoutPressed = false;
+
+            // closing stuff from the internet
+            IntPtr hWnd = Game1.Instance.Window.Handle;
+            newWndProcDelegate = new WndProcDelegate(WndProc);
+            IntPtr newWndProcPtr = Marshal.GetFunctionPointerForDelegate(newWndProcDelegate);
+            originalWndProc = GetWindowLong(hWnd, GWL_WNDPROC);
+
+            // Set custom window procedure
+            SetWindowLong(hWnd, GWL_WNDPROC, newWndProcPtr);
+        }
+
+        // Custom window procedure to intercept messages
+        private IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
+        {
+            try
+            {
+                if (msg == WM_CLOSE)
+                {
+                    // Show confirmation panel instead of closing
+                    isLogoutPressed = true;
+                    Console.WriteLine("Intercepting WM_CLOSE, showing logout panel.");
+                    return IntPtr.Zero; // Ignore the close message
+                }
+
+                // Validate originalWndProc before calling
+                if (originalWndProc == IntPtr.Zero)
+                {
+                    Console.WriteLine("originalWndProc is null, cannot proceed with CallWindowProc.");
+                    return IntPtr.Zero;
+                }
+
+                // Call original window procedure for other messages
+                return CallWindowProc(originalWndProc, hWnd, msg, wParam, lParam);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Exception in WndProc: " + ex.Message);
+                return IntPtr.Zero;
+            }
+        }
+
+
+        // Properly call the original window procedure
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+        private void OnWindowClose(object sender, EventArgs e)
+        {
+            isLogoutPressed = true;
+        }
+
+        private void ShowPanel()
+        {
+            isLogoutPressed = true;
+        }
+
+        private void CancelLogout()
+        {
+            isLogoutPressed = false;
+        }
+
+        private void SubmitPanel()
+        {
+            // Restore the original window procedure to allow close messages
+            SetWindowLong(Game1.Instance.Window.Handle, GWL_WNDPROC, originalWndProc);
+
+            if (Game1.Instance != null)
+            {
+                Game1.Instance.Exit();
+            }
+            else
+            {
+                Console.WriteLine("Game1.Instance is null!");
+            }
+        }
+
+        private void OpenSkill()
+        {
+            skillTab.IsVisible = !skillTab.IsVisible;
+            if (skillTab.IsVisible)
+            {
+                inventory.IsVisible = false;
+            }
         }
 
         private void OpenBackpack()
         {
             inventory.IsVisible = !inventory.IsVisible;
+            if (inventory.IsVisible)
+            {
+                skillTab.IsVisible = false;
+            }
         }
 
         private void OnWindowResize(object sender, EventArgs e)
@@ -102,6 +244,8 @@ namespace MyGame.States
             equipmentSlot2.UpdatePosition(new Vector2(8 + Globals.screenWidth - 196 + 4 + 32 + 4 + 4 + 4 + 4, Globals.screenHeight / 2 - 28 - 24 - 18 - 16));
             equipmentSlot3.UpdatePosition(new Vector2(8 + Globals.screenWidth - 196 + 4 + 64 + 4 + 4 + 4 + 4 + 4 + 4 + 4, Globals.screenHeight / 2 - 28 - 24 - 18 - 16));
             equipmentSlot4.UpdatePosition(new Vector2(8 + Globals.screenWidth - 196 + 4 + 96 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4, Globals.screenHeight / 2 - 28 - 24 - 18 - 16));
+
+            skillTab.Position = new Vector2(inventory.Position.X, inventory.Position.Y);
         }
 
         private void MenuPressed()
@@ -136,6 +280,7 @@ namespace MyGame.States
             player.Update(gameTime);
 
             camera.Position = player.Position; // Adjust this offset as needed
+            skillTab.Position = new Vector2(inventory.Position.X, inventory.Position.Y);
 
             // Mouse to World position;
             Matrix inverseMatrix = Matrix.Invert(camera.GetTransformation(Globals.Graphics));
@@ -163,13 +308,29 @@ namespace MyGame.States
             
             inventory.Update(gameTime);
             inventory.UpdatePosition(new Vector2(Globals.screenWidth - 196 + 8, Globals.screenHeight / 2 + 8));
-            Console.WriteLine(inventory.Position);
+
+            // skill tab
+            skillTab.UpdatePosition(new Vector2(Globals.screenWidth - 196 + 8, Globals.screenHeight / 2 + 8 - 34));
+
+            // logout panel
+            logoutPanelPosition = new Vector2(Globals.screenWidth / 2 - 450 / 2, Globals.screenHeight / 2 - 134 / 2);
+
+            Console.WriteLine(skillTab.Position);
 
             // equipment slots
             equipmentSlot1.Update(gameTime);
             equipmentSlot2.Update(gameTime);
             equipmentSlot3.Update(gameTime);
             equipmentSlot4.Update(gameTime);
+
+            // update logout menu panel
+            if (isLogoutPressed)
+            {
+                btnSubmit.Update(gameTime);
+                btnSubmit.btnPosition = new Vector2(logoutPanelPosition.X + 64 + 32, logoutPanelPosition.Y + 128 - 32);
+                btnCancel.Update(gameTime);
+                btnCancel.btnPosition = new Vector2(logoutPanelPosition.X + 64 + 128 + 32 + 8, logoutPanelPosition.Y + 128 - 32);
+            }
         }
 
         public void Draw()
@@ -215,20 +376,19 @@ namespace MyGame.States
                 Globals.SpriteBatch.Draw(icons, new Rectangle((int)gearIcon.Position.X + 4, (int)gearIcon.Position.Y + 4, 16, 16), new Rectangle(98, 10, 16, 16), Color.White);
                 Globals.SpriteBatch.Draw(icons, new Rectangle((int)logoutIcon.Position.X + 4, (int)logoutIcon.Position.Y + 4, 16, 16), new Rectangle(80, 10, 16, 16), Color.White);
 
-                // skills tab
-                Globals.SpriteBatch.DrawString(Globals.SpriteFont,
-                               "Experience",
-                               new Vector2(backpackIcon.Position.X, backpackIcon.Position.Y + 32),  // Position
-                               Color.White,            // Color
-                               0,                      // Rotation
-                               Vector2.Zero,           // Origin
-                               new Vector2(0.5f, 0.5f),// Scale (this will double the size)
-                               SpriteEffects.None,
-                               0);
+                skillTab.Draw();
             }
 
-            iconMenu.Draw();
+            if (isLogoutPressed)
+            {
+                Globals.SpriteBatch.Draw(logoutPanel, logoutPanelPosition, Color.White);
+                Globals.SpriteBatch.DrawString(Globals.SpriteFont, "Are you sure you want to exit?", new Vector2(logoutPanelPosition.X+8, logoutPanelPosition.Y+8), Color.White);
+
+                btnSubmit.Draw();
+                btnCancel.Draw();
+            }
             
+            iconMenu.Draw();
 
             Globals.SpriteBatch.End();
         }

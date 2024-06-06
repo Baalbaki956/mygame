@@ -6,14 +6,14 @@ using System.Text;
 
 namespace MyGame.UI
 {
-    class Inventory
+    class InventoryTab
     {
         public Vector2 Position;
         public bool IsVisible { get; set; }
 
         private List<Slot> slots;
 
-        public Inventory(Vector2 position)
+        public InventoryTab(Vector2 position)
         {
             this.Position = position;
 
