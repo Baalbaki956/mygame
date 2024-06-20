@@ -5,7 +5,7 @@ using System.Text;
 
 namespace MyGame.World
 {
-    class Object
+    public class Object
     {
         #region Variables
         int id;

@@ -9,26 +9,26 @@ using System.Xml;
 
 namespace MyGame.World
 {
-    class OrthogonalMap
+    public class OrthogonalMap
     {
         Texture2D[] textures;
-        Tile[] tiles;
+        public static Tile[] tiles;
 
-        internal Tile[] Tiles
+        public static Tile[] Tiles
         {
             get { return tiles; }
             set { tiles = value; }
         }
-        Object[] objects;
-        Action[] actions;
+        public static Object[] objects;
+        public Action[] actions;
 
-        internal Action[] Actions
+        public Action[] Actions
         {
             get { return actions; }
             set { actions = value; }
         }
 
-        internal Object[] Objects
+        public static Object[] Objects
         {
             get { return objects; }
             set { objects = value; }

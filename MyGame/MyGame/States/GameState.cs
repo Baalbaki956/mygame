@@ -4,17 +4,25 @@ using Microsoft.Xna.Framework.Input;
 using MyGame.Entities;
 using MyGame.Input;
 using MyGame.UI;
+using MyGame.UI.Chat;
 using MyGame.World;
 using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading;
 
 namespace MyGame.States
 {
     public class GameState : IState
     {
-        Player player;
         Camera camera;
         OrthogonalMap map;
+
+        // NETWORKING STUFF
+        public static NetworkStream stream;
 
         // logout panel
         Texture2D logoutPanel;
@@ -41,6 +49,9 @@ namespace MyGame.States
 
         Vector2 mouseInWorldToTilePos;
 
+        // CHAT STUFF
+        ChatManager chatManager;
+
         // player preview panel
         Texture2D playerPreview;
 
@@ -56,6 +67,10 @@ namespace MyGame.States
 
         // skill tab
         SkillTab skillTab;
+
+        // player stuff
+        Player player;
+        List<GameObject> gameObjects;
 
         // window close stuff from the internet
         // Windows API function declarations
@@ -78,7 +93,12 @@ namespace MyGame.States
 
         public void Initialize()
         {
+            // SEVER STUFF
+            IPAddress ipAddress = IPAddress.Parse("127.0.0.1");
+            int port = 8080;
+           
             Console.WriteLine("GameState Initialized!");
+
             Game1.Instance.Window.ClientSizeChanged += OnWindowResize;
 
             // Initialize camera and set its initial position to the player position
@@ -90,7 +110,16 @@ namespace MyGame.States
             map = new OrthogonalMap();
             map.LoadContent();
 
-            player = new Player(new Vector2(8, 4), map);
+            // Player
+            player = new Player();
+
+            // CHAT MANAGER
+            chatManager = new ChatManager();
+
+            // Player2
+            gameObjects = new List<GameObject>();
+            gameObjects.Add(new GameObject(1, 1));
+            gameObjects.Add(new GameObject(2, 2));
 
             // menu icon
             iconMenu = new Icon(Globals.screenWidth - 24, 0);
@@ -143,6 +172,35 @@ namespace MyGame.States
             btnCancel.OnClick += CancelLogout;
 
             isLogoutPressed = false;
+
+            // NETWORK STUFF
+            try
+            {
+                // Create a TCP client and connect to the server
+                TcpClient client = new TcpClient();
+                client.Connect(ipAddress, port);
+                stream = client.GetStream();
+                Console.WriteLine("Connected to server at {0}:{1}", ipAddress, port);
+
+                // Send data to the server
+                string text = "HI";
+                string text2 = "HELLOO";
+
+                SendData(text, stream);
+                SendData(text2, stream);
+
+                // Receive a response from the server
+                string str1 = ReceiveData(stream);
+                string str2 = ReceiveData(stream);
+
+                // Close the client connection
+                stream.Close();
+                client.Close();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
 
             // closing stuff from the internet
             IntPtr hWnd = Game1.Instance.Window.Handle;
@@ -276,10 +334,14 @@ namespace MyGame.States
             else
                 iconMenu.Position = new Vector2(Globals.screenWidth - 24, 0);
 
-            // update player
             player.Update(gameTime);
+            camera.Position = player.Position;
 
-            camera.Position = player.Position; // Adjust this offset as needed
+            foreach (GameObject gameObject in gameObjects)
+            {
+                gameObject.Update(gameTime);
+            }
+
             skillTab.Position = new Vector2(inventory.Position.X, inventory.Position.Y);
 
             // Mouse to World position;
@@ -294,7 +356,7 @@ namespace MyGame.States
                     map.ChangeTile(0, 0);
                 }
             }
-
+            
             iconMenu.Update(gameTime);
             
             backpackIcon.Update(gameTime);
@@ -315,8 +377,6 @@ namespace MyGame.States
             // logout panel
             logoutPanelPosition = new Vector2(Globals.screenWidth / 2 - 450 / 2, Globals.screenHeight / 2 - 134 / 2);
 
-            Console.WriteLine(skillTab.Position);
-
             // equipment slots
             equipmentSlot1.Update(gameTime);
             equipmentSlot2.Update(gameTime);
@@ -331,6 +391,9 @@ namespace MyGame.States
                 btnCancel.Update(gameTime);
                 btnCancel.btnPosition = new Vector2(logoutPanelPosition.X + 64 + 128 + 32 + 8, logoutPanelPosition.Y + 128 - 32);
             }
+
+            // CHAT STUFF
+            chatManager.Update(gameTime);
         }
 
         public void Draw()
@@ -339,6 +402,10 @@ namespace MyGame.States
             Globals.SpriteBatch.Begin(SpriteSortMode.Deferred, null, null, null, null, null, camera.GetTransformation(Globals.Graphics));
             map.Draw();
             player.Draw();
+            foreach (GameObject gameObject in gameObjects)
+            {
+                gameObject.Draw();
+            }
             Globals.SpriteBatch.End();
 
             // Draw UI elements without camera transformation
@@ -347,6 +414,7 @@ namespace MyGame.States
             Globals.SpriteBatch.DrawString(Globals.SpriteFont, "MPos X: " + ((int)mouseInWorldToTilePos.X + ", Y: " + (int)mouseInWorldToTilePos.Y), new Vector2(0, 32), Color.White);
 
             player.DrawHealth();
+
             if (iconMenu.isPressed)
             {
                 Globals.SpriteBatch.Draw(panel, new Rectangle(Globals.screenWidth - 196, 0, 196, Globals.screenHeight), Color.White);
@@ -389,8 +457,24 @@ namespace MyGame.States
             }
             
             iconMenu.Draw();
-
+            chatManager.Draw();
             Globals.SpriteBatch.End();
+        }
+
+        public static string ReceiveData(NetworkStream stream)
+        {
+            byte[] buffer = new byte[1024];
+            int bytesRead = stream.Read(buffer, 0, buffer.Length);
+            string response = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+            Console.WriteLine("Received: {0}", response);
+            return response;
+        }
+
+        public static void SendData(string message, NetworkStream stream)
+        {
+            byte[] data = Encoding.ASCII.GetBytes(message);
+            stream.Write(data, 0, data.Length);
+            Console.WriteLine("Sent: {0}", message);
         }
     }
 }

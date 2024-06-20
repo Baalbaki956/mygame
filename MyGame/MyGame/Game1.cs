@@ -11,6 +11,8 @@ using Microsoft.Xna.Framework.Media;
 using MyGame.States;
 using MyGame.Input;
 using MyGame.World;
+using System.Net;
+using System.Net.Sockets;
 
 namespace MyGame
 {

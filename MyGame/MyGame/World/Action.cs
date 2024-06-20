@@ -5,7 +5,7 @@ using System.Text;
 
 namespace MyGame.World
 {
-    class Action
+    public class Action
     {
         public int Id
         {

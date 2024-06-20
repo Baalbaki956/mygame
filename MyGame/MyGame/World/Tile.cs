@@ -6,7 +6,7 @@ using System.Text;
 
 namespace MyGame.World
 {
-    class Tile
+    public class Tile
     {
         public int[] ID
         {

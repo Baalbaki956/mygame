@@ -6,17 +6,20 @@ using MyGame.Input;
 using MyGame.World;
 using System;
 using System.Collections.Generic;
+using System.Net.Sockets;
+using System.Text;
 
 namespace MyGame.Entities
 {
-    class Player
+    public class Player
     {
         public Vector2 Position { get; set; }
         public Vector2 Target { get; set; }
 
         private bool moving;
+        public static bool IsLoggedIn { get; set; }
+
         private Dictionary<Keys, bool> keys;
-        private OrthogonalMap map;
 
         private Rectangle healthRect;
         private Texture2D healthTexture;
@@ -29,13 +32,15 @@ namespace MyGame.Entities
 
         Animation currentAnim;
 
-        public Player(Vector2 position, OrthogonalMap map)
+        public Player()
         {
-            this.map = map;
-            Position = position * 32; // Adjust based on tile size
+            //Position = position * 32; // Adjust based on tile size
             Target = Position;
             moving = false;
             keys = new Dictionary<Keys, bool>();
+
+            // server related
+            IsLoggedIn = true;
 
             // Health
             healthTexture = Globals.Content.Load<Texture2D>("UI/healthBar");
@@ -151,11 +156,11 @@ namespace MyGame.Entities
             Rectangle newBoundingBox = new Rectangle(newX, newY, 32, 32); // Assuming player size is 32x32
 
             // Check collision with unpassable tiles
-            foreach (var tile in map.Tiles)
+            foreach (var tile in OrthogonalMap.Tiles)
             {
                 foreach (var tileId in tile.ID)
                 {
-                    var obj = Array.Find(map.Objects, o => o.ID == tileId);
+                    var obj = Array.Find(OrthogonalMap.Objects, o => o.ID == tileId);
                     if (obj != null && obj.IsUnpassable && newBoundingBox.Intersects(tile.BoundingBox))
                     {
                         return false;
@@ -164,6 +169,11 @@ namespace MyGame.Entities
             }
 
             return true; // No collision detected
+        }
+
+        public void SetPosition(float x, float y)
+        {
+            this.Position = new Vector2(x, y);
         }
     }
 }
