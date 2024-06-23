@@ -5,9 +5,9 @@ using MyGame.Input;
 using MyGame.States;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace MyGame.UI.Chat
 {
@@ -15,7 +15,7 @@ namespace MyGame.UI.Chat
     {
         private ChatBox chatBox;
         private TextBox textBox;
-        
+
         private StringBuilder inputText;  // Store the typed text
         public StringBuilder InputText
         {
@@ -32,11 +32,14 @@ namespace MyGame.UI.Chat
         public ChatManager()
         {
             chatBox = new ChatBox(0, Globals.screenHeight - 152);
-            textBox = new TextBox(10, Globals.screenHeight - 352);
+            textBox = new TextBox(0, Globals.screenHeight - 10);
             textBox.IsClicked = false;
 
             texts = new List<string>();
             inputText = new StringBuilder();
+
+            // Start listening for incoming messages from the server
+            Task.Factory.StartNew(() => ListenForMessages(GameState.stream));
         }
 
         public void Update(GameTime gameTime)
@@ -101,7 +104,7 @@ namespace MyGame.UI.Chat
                 Globals.SpriteBatch.DrawString(Globals.SpriteFont, txt, drawPosition, Color.White, 0, Vector2.Zero, 0.5f, SpriteEffects.None, 0);
                 drawPosition.Y += Globals.SpriteFont.MeasureString(txt).Y * 0.5f - 18;
             }
-            
+
             if (isTyping && showCursor)
             {
                 Vector2 textSize = Globals.SpriteFont.MeasureString(inputText.ToString());
@@ -186,6 +189,49 @@ namespace MyGame.UI.Chat
                 byte[] data = Encoding.ASCII.GetBytes(message);
                 stream.Write(data, 0, data.Length);
                 Console.WriteLine("Sent: {0}", message);
+            }
+            catch (ObjectDisposedException ex)
+            {
+                Console.WriteLine("Error: " + ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("An unexpected error occurred: " + ex.Message);
+            }
+        }
+
+        private void ListenForMessages(NetworkStream stream)
+        {
+            if (stream == null)
+            {
+                Console.WriteLine("Cannot listen for messages, stream is null.");
+                return;
+            }
+
+            if (!stream.CanRead)
+            {
+                Console.WriteLine("Cannot listen for messages, stream is not readable.");
+                return;
+            }
+
+            try
+            {
+                while (true)
+                {
+                    byte[] buffer = new byte[1024];
+                    int bytesRead = stream.Read(buffer, 0, buffer.Length);
+                    if (bytesRead == 0)
+                    {
+                        // Connection closed
+                        break;
+                    }
+
+                    string message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+                    Console.WriteLine("Received: {0}", message);
+
+                    // Add received message to texts to display in chat
+                    AddText(message);
+                }
             }
             catch (ObjectDisposedException ex)
             {
